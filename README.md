@@ -2,7 +2,7 @@
 
 Detecting **atrial fibrillation (AF)** from images of paper ECGs using computer vision.
 
-> **Status:** early stage, a learning and portfolio project. Data preparation is complete; image generation and model training are next.
+> **Status:** early stage, a learning and portfolio project. Data preparation and ECG image generation are complete; model training is next.
 
 ---
 
@@ -57,7 +57,7 @@ Folds 9 and 10 contain only human-validated ECGs, giving the most reliable evalu
 
 | Notebook | Purpose | Status |
 |---|---|---|
-| `ECG_Vision_01_Explore_PTBXL.ipynb` | Download PTB-XL, explore metadata, build NORM vs. AFIB labels and splits, then load raw waveforms with `wfdb` and plot normal vs. AF on ECG-style grids | ✅ Done |
+| `ECG_Vision_01_Explore_PTBXL.ipynb` | Download PTB-XL, explore metadata, build NORM vs. AFIB labels and splits, plot raw waveforms with `wfdb`, and render all 9,718 ECGs as standard 12-lead printout images | ✅ Done |
 
 Built and run in **Google Colab**, with data stored in Google Drive.
 
@@ -67,12 +67,23 @@ Built and run in **Google Colab**, with data stored in Google Drive.
 - [x] Define the task: Normal vs. AF
 - [x] Download, explore and label PTB-XL
 - [x] Plot real ECG waveforms
-- [ ] Generate realistic ECG-paper images (e.g. with [ECG-Image-Kit](https://github.com/alphanumericslab/ecg-image-kit))
+- [x] Render 9,718 ECGs as standard 12-lead printout images (3×4 leads + lead II rhythm strip, 25 mm/s, 10 mm/mV)
+- [ ] Add realistic photo distortions (blur, rotation, lighting), e.g. with [ECG-Image-Kit](https://github.com/alphanumericslab/ecg-image-kit)
 - [ ] Train a baseline CNN image classifier (transfer learning)
 - [ ] Evaluate on the held-out test set (sensitivity, specificity, F1)
 - [ ] Error analysis with a clinician
 - [ ] Test on real phone photos of printed ECGs
 - [ ] Prototype a mobile app
+
+## ECG images
+
+Each ECG is drawn from its raw 100 Hz signal as a standard 12-lead printout on ECG paper:
+
+- Rows 1–3: leads I, aVR, V1, V4 / II, aVL, V2, V5 / III, aVF, V3, V6, each showing 2.5 seconds
+- Row 4: lead II rhythm strip across the full 10 seconds
+- Standard scale: 25 mm/s horizontally, 10 mm/mV vertically, with 1 mm and 5 mm grid boxes
+
+Images are saved as `<ecg_id>.png` (about 100 KB each, roughly 1 GB in total) and are not included in this repository.
 
 ## How to run
 
