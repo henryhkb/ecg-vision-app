@@ -2,7 +2,7 @@
 
 Detecting **atrial fibrillation (AF)** from images of paper ECGs using computer vision.
 
-> **Status:** early stage, a learning and portfolio project. Data preparation and ECG image generation are complete; model training is next.
+> **Status:** a learning and portfolio project. A first model is trained and evaluated on clean, rendered ECG images (test F1 0.967). Testing on realistic photos of paper ECGs is next.
 
 ---
 
@@ -58,6 +58,7 @@ Folds 9 and 10 contain only human-validated ECGs, giving the most reliable evalu
 | Notebook | Purpose | Status |
 |---|---|---|
 | `ECG_Vision_01_Explore_PTBXL.ipynb` | Download PTB-XL, explore metadata, build NORM vs. AFIB labels and splits, plot raw waveforms with `wfdb`, and render all 9,718 ECGs as standard 12-lead printout images | ✅ Done |
+| `ECG_Vision_02_Train_Model.ipynb` | Fine-tune ResNet-18 on the ECG images, analyse validation errors, choose the decision threshold, and evaluate once on the test set | ✅ Done |
 
 Built and run in **Google Colab**, with data stored in Google Drive.
 
@@ -69,9 +70,12 @@ Built and run in **Google Colab**, with data stored in Google Drive.
 - [x] Plot real ECG waveforms
 - [x] Render 9,718 ECGs as standard 12-lead printout images (3×4 leads + lead II rhythm strip, 25 mm/s, 10 mm/mV)
 - [ ] Add realistic photo distortions (blur, rotation, lighting), e.g. with [ECG-Image-Kit](https://github.com/alphanumericslab/ecg-image-kit)
-- [ ] Train a baseline CNN image classifier (transfer learning)
-- [ ] Evaluate on the held-out test set (sensitivity, specificity, F1)
-- [ ] Error analysis with a clinician
+- [x] Simple baselines (always-Normal and an R–R irregularity rule)
+- [x] Train a CNN image classifier (ResNet-18, transfer learning)
+- [x] Choose the decision threshold on the validation set
+- [x] Evaluate on the held-out test set (sensitivity, specificity, F1)
+- [x] Error analysis of validation mistakes
+- [ ] Review the misclassified ECGs with a clinician
 - [ ] Test on real phone photos of printed ECGs
 - [ ] Prototype a mobile app
 
@@ -85,12 +89,62 @@ Each ECG is drawn from its raw 100 Hz signal as a standard 12-lead printout on E
 
 Images are saved as `<ecg_id>.png` (about 100 KB each, roughly 1 GB in total) and are not included in this repository.
 
+## Model
+
+- **Architecture:** ResNet-18 pretrained on ImageNet (transfer learning), with the final layer replaced by a single output (the AF score)
+- **Input:** each ECG image resized to 240 × 496 pixels and normalised with ImageNet statistics
+- **Loss:** `BCEWithLogitsLoss` with `pos_weight = 5.41` (normal ÷ AF in the training set), so mistakes on the rarer AF class count more
+- **Optimiser:** Adam, learning rate 1e-4, batch size 32, 5 epochs on a Colab T4 GPU (about 130 s per epoch)
+- **Model selection:** the epoch with the best validation F1 was kept (epoch 3)
+- **Threshold:** chosen on the validation set only. Thresholds from 0.05 to 0.95 were compared; **0.30** was chosen because missing AF is the more harmful error for a screening tool (validation: 3 missed AF, 6 false alarms, F1 0.970). The best-F1 threshold, 0.60, missed 5 AF with 1 false alarm.
+
+## Results
+
+### Baselines (validation set)
+
+| Method | Sensitivity | Specificity | F1 |
+|---|---|---|---|
+| Always predict Normal | 0.000 | 1.000 | 0.000 (accuracy 0.848) |
+| R–R irregularity rule (coefficient of variation > 0.110, learned on train) | 0.901 | 0.937 | 0.800 |
+
+### CNN on the held-out test set (fold 10, evaluated once, threshold 0.30)
+
+| | Predicted Normal | Predicted AF |
+|---|---|---|
+| **True Normal (815)** | 811 | 4 |
+| **True AF (152)** | 6 | 146 |
+
+| Sensitivity | Specificity | F1 | Accuracy |
+|---|---|---|---|
+| **0.961** | **0.995** | **0.967** | 0.990 |
+
+The test F1 (0.967) is close to the validation F1 at the same threshold (0.970), so the model generalises to unseen patients.
+
+## Error analysis (validation set, threshold 0.5)
+
+The model made 7 validation errors: 5 missed AF and 2 false alarms. Reviewing the images and the original PTB-XL reports showed:
+
+- **The model relies heavily on rhythm irregularity.** A normal ECG with premature ventricular contractions (PVCs), which make the rhythm irregular, was called AF with probability 0.96. AF ECGs whose rhythm looked fairly regular were called normal.
+- **Some AF labels are ambiguous.** 4 of the 5 missed AF ECGs have the German report *"Vorhofflimmern/-flattern"* (atrial fibrillation **or** flutter). Atrial flutter is often regular, so some of these may not be fibrillation.
+- **One missed case was reported as intermittent AF,** which may not be present during the 10-second recording.
+- **The Normal class includes ECGs with extra beats** (such as PVCs), because the label rule (`NORM` + `SR` + no `AFIB`) does not exclude them.
+
+These cases are being reviewed with a clinician.
+
+## Limitations
+
+- The images are clean, computer-rendered ECGs. Performance on phone photos of printed ECGs (shadows, tilt, creases, blur) is untested and expected to be lower.
+- Labels come from PTB-XL as published, including the ambiguous fibrillation/flutter reports.
+- Only two classes (Normal vs. AF); other arrhythmias were excluded from the data.
+- Not validated clinically; see the disclaimer below.
+
 ## How to run
 
 1. Open the notebooks in Google Colab.
 2. Run the setup cell to mount Google Drive and set project paths.
 3. On first use, run the download cells in notebook 01 to fetch PTB-XL and save a copy to Drive.
 4. In later sessions, run only the setup cell; it restores the dataset from Drive and loads the saved labels.
+5. In notebook 02, select a GPU runtime (T4), then run the cells in order. The trained weights are saved to `ECG_Vision_App/models/resnet18_best.pt` on Drive (not included in this repository).
 
 ## Related work
 
