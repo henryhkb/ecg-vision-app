@@ -2,7 +2,7 @@
 
 Detecting **atrial fibrillation (AF)** from images of paper ECGs using computer vision.
 
-> **Status:** a learning and portfolio project. A first model is trained and evaluated on clean, rendered ECG images (test F1 0.967). Testing on realistic photos of paper ECGs is next.
+> **Status:** a learning and portfolio project. A first model reaches test F1 0.967 on clean, rendered ECG images, but a robustness test showed it fails on photo-like images (blur, tilt, lighting, perspective). Retraining with data augmentation is next.
 
 ---
 
@@ -59,6 +59,7 @@ Folds 9 and 10 contain only human-validated ECGs, giving the most reliable evalu
 |---|---|---|
 | `ECG_Vision_01_Explore_PTBXL.ipynb` | Download PTB-XL, explore metadata, build NORM vs. AFIB labels and splits, plot raw waveforms with `wfdb`, and render all 9,718 ECGs as standard 12-lead printout images | ✅ Done |
 | `ECG_Vision_02_Train_Model.ipynb` | Fine-tune ResNet-18 on the ECG images, analyse validation errors, choose the decision threshold, and evaluate once on the test set | ✅ Done |
+| `ECG_Vision_03_Robustness.ipynb` | Test the trained model on photo-like distortions, then retrain with data augmentation | 🔄 In progress |
 
 Built and run in **Google Colab**, with data stored in Google Drive.
 
@@ -69,13 +70,15 @@ Built and run in **Google Colab**, with data stored in Google Drive.
 - [x] Download, explore and label PTB-XL
 - [x] Plot real ECG waveforms
 - [x] Render 9,718 ECGs as standard 12-lead printout images (3×4 leads + lead II rhythm strip, 25 mm/s, 10 mm/mV)
-- [ ] Add realistic photo distortions (blur, rotation, lighting), e.g. with [ECG-Image-Kit](https://github.com/alphanumericslab/ecg-image-kit)
+- [ ] Add more realistic image artefacts (creases, shadows, handwriting), e.g. with [ECG-Image-Kit](https://github.com/alphanumericslab/ecg-image-kit)
 - [x] Simple baselines (always-Normal and an R–R irregularity rule)
 - [x] Train a CNN image classifier (ResNet-18, transfer learning)
 - [x] Choose the decision threshold on the validation set
 - [x] Evaluate on the held-out test set (sensitivity, specificity, F1)
 - [x] Error analysis of validation mistakes
-- [ ] Review the misclassified ECGs with a clinician
+- [x] Robustness test on photo-like distortions (model failed: many false alarms)
+- [ ] Retrain with photo-like data augmentation and repeat the robustness test
+- [ ] Review the misclassified ECGs with a clinician (blind review sent)
 - [ ] Test on real phone photos of printed ECGs
 - [ ] Prototype a mobile app
 
@@ -131,9 +134,25 @@ The model made 7 validation errors: 5 missed AF and 2 false alarms. Reviewing th
 
 These cases are being reviewed with a clinician.
 
+## Robustness to photo-like images
+
+Real use means phone photos of printed ECGs, not clean digital renders. To check this, the trained model (unchanged, threshold 0.30) was run on the 992 validation ECGs with one distortion applied at a time, using `torchvision` transforms:
+
+| Distortion | Imitates | Missed AF (of 151) | False alarms (of 841) | Sensitivity | Specificity | F1 |
+|---|---|---|---|---|---|---|
+| None (clean) | | 3 | 6 | 0.980 | 0.993 | 0.970 |
+| Rotation (up to ±8°) | Phone held at a tilt | 2 | 304 | 0.987 | 0.639 | 0.493 |
+| Brightness/contrast (±50%) | Dim room, flash, uneven light | 2 | 303 | 0.987 | 0.640 | 0.494 |
+| Perspective (scale 0.3) | Photo taken at an angle | 0 | 764 | 1.000 | 0.092 | 0.283 |
+| Gaussian blur (σ = 3) | Out of focus, shaky hand | 0 | 841 | 1.000 | 0.000 | 0.264 |
+
+**Finding:** under any distortion, the model labels many normal ECGs as AF, and under blur it labels every ECG as AF. The high sensitivity is not a strength here; it comes from predicting AF for almost everything. Because every normal ECG in training was perfectly clean, the model appears to have learned "not perfectly clean" as a shortcut for AF. This is a **distribution shift** problem, and it means the current model would not work on phone photos.
+
+**Next step:** retrain with random photo-like augmentations applied to the training images only (rotation, perspective, blur and lighting, each applied with 50% probability), then repeat this table. Validation and test images stay unaugmented for the main scores.
+
 ## Limitations
 
-- The images are clean, computer-rendered ECGs. Performance on phone photos of printed ECGs (shadows, tilt, creases, blur) is untested and expected to be lower.
+- The model was trained and tested on clean, computer-rendered ECGs. On photo-like distortions its specificity collapses (see Robustness above), so the reported test scores apply to clean digital images only.
 - Labels come from PTB-XL as published, including the ambiguous fibrillation/flutter reports.
 - Only two classes (Normal vs. AF); other arrhythmias were excluded from the data.
 - Not validated clinically; see the disclaimer below.
