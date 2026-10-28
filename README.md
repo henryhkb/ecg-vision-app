@@ -144,7 +144,7 @@ These cases are being reviewed with a clinician.
 2. Run the setup cell to mount Google Drive and set project paths.
 3. On first use, run the download cells in notebook 01 to fetch PTB-XL and save a copy to Drive.
 4. In later sessions, run only the setup cell; it restores the dataset from Drive and loads the saved labels.
-5. In notebook 02, select a GPU runtime (T4), then run the cells in order. The trained weights are saved to `ECG_Vision_App/models/resnet18_best.pt` on Drive (not included in this repository).
+5. In notebook 02, choose a GPU first (**Runtime → Change runtime type → T4 GPU**), then run the cells in order. Training takes about 11 minutes for 5 epochs. The trained weights are saved to `ECG_Vision_App/models/resnet18_best.pt` on Drive (not included in this repository).
 
 ## Related work
 
