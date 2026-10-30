@@ -78,7 +78,7 @@ Built and run in **Google Colab**, with data stored in Google Drive.
 - [x] Error analysis of validation mistakes
 - [x] Robustness test on photo-like distortions (model failed: many false alarms)
 - [ ] Retrain with photo-like data augmentation and repeat the robustness test
-- [ ] Review the misclassified ECGs with a clinician (blind review sent)
+- [x] Blind cardiologist review of the validation disagreements (agreed with the model in 6 of 7)
 - [ ] Test on real phone photos of printed ECGs
 - [ ] Prototype a mobile app
 
@@ -132,7 +132,23 @@ The model made 7 validation errors: 5 missed AF and 2 false alarms. Reviewing th
 - **One missed case was reported as intermittent AF,** which may not be present during the 10-second recording.
 - **The Normal class includes ECGs with extra beats** (such as PVCs), because the label rule (`NORM` + `SR` + no `AFIB`) does not exclude them.
 
-These cases are being reviewed with a clinician.
+### Blind review by a cardiologist
+
+The 7 ECGs were sent to a cardiologist as images labelled only A to G, without the PTB-XL label or the model's prediction, so the reading would not be influenced.
+
+| ECG | Cardiologist | PTB-XL label | Model (threshold 0.5) | Agrees with cardiologist |
+|---|---|---|---|---|
+| A | Not AF | AF | Normal | Model |
+| B | Not AF | Normal | AF (0.96) | Label |
+| C | Not AF | AF | Normal | Model |
+| D | Not AF | AF | Normal | Model |
+| E | AF | Normal | AF (0.57) | Model |
+| F | Not AF | AF | Normal | Model |
+| G | Not AF | AF | Normal | Model |
+
+**The cardiologist agreed with the model in 6 of the 7 cases** and with the PTB-XL label in 1. This suggests most of these validation "errors" are **label errors** in PTB-XL's AF class, consistent with the ambiguous "fibrillation/flutter" reports. The one clear model error (B) is a normal ECG with premature ventricular contractions, which supports the finding that irregular rhythm alone can mislead the model.
+
+**Caveats:** one reader and 7 ECGs, selected because the model disagreed with the label. The review shows that label noise exists but not how much; ECGs where the model and label agreed were not reviewed. No labels in the training, validation or test sets were changed based on this review.
 
 ## Robustness to photo-like images
 
@@ -153,7 +169,7 @@ Real use means phone photos of printed ECGs, not clean digital renders. To check
 ## Limitations
 
 - The model was trained and tested on clean, computer-rendered ECGs. On photo-like distortions its specificity collapses (see Robustness above), so the reported test scores apply to clean digital images only.
-- Labels come from PTB-XL as published, including the ambiguous fibrillation/flutter reports.
+- Labels come from PTB-XL as published. A blind cardiologist review of the 7 validation disagreements found the label likely wrong in 6, so the reported scores are affected by label noise (in either direction).
 - Only two classes (Normal vs. AF); other arrhythmias were excluded from the data.
 - Not validated clinically; see the disclaimer below.
 
