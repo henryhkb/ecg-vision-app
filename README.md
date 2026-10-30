@@ -2,7 +2,7 @@
 
 Detecting **atrial fibrillation (AF)** from images of paper ECGs using computer vision.
 
-> **Status:** a learning and portfolio project. A first model reaches test F1 0.967 on clean, rendered ECG images, but a robustness test showed it fails on photo-like images (blur, tilt, lighting, perspective). Retraining with data augmentation is next.
+> **Status:** a learning and portfolio project. The current model, retrained with photo-like data augmentation, reaches test F1 0.954 on clean ECG images and 0.92–0.96 on blurred, tilted, angled and re-lit versions (the first model scored 0.27–0.52 on those). Testing on real phone photos of printed ECGs is next.
 
 ---
 
@@ -59,7 +59,7 @@ Folds 9 and 10 contain only human-validated ECGs, giving the most reliable evalu
 |---|---|---|
 | `ECG_Vision_01_Explore_PTBXL.ipynb` | Download PTB-XL, explore metadata, build NORM vs. AFIB labels and splits, plot raw waveforms with `wfdb`, and render all 9,718 ECGs as standard 12-lead printout images | ✅ Done |
 | `ECG_Vision_02_Train_Model.ipynb` | Fine-tune ResNet-18 on the ECG images, analyse validation errors, choose the decision threshold, and evaluate once on the test set | ✅ Done |
-| `ECG_Vision_03_Robustness.ipynb` | Test the trained model on photo-like distortions, then retrain with data augmentation | 🔄 In progress |
+| `ECG_Vision_03_Robustness.ipynb` | Test the trained model on photo-like distortions, retrain with data augmentation, choose a new threshold and evaluate once on the test set | ✅ Done |
 
 Built and run in **Google Colab**, with data stored in Google Drive.
 
@@ -77,7 +77,7 @@ Built and run in **Google Colab**, with data stored in Google Drive.
 - [x] Evaluate on the held-out test set (sensitivity, specificity, F1)
 - [x] Error analysis of validation mistakes
 - [x] Robustness test on photo-like distortions (model failed: many false alarms)
-- [ ] Retrain with photo-like data augmentation and repeat the robustness test
+- [x] Retrain with photo-like data augmentation and repeat the robustness test (test F1 on distorted images: 0.27–0.52 → 0.92–0.96)
 - [x] Blind cardiologist review of the validation disagreements (agreed with the model in 6 of 7)
 - [ ] Test on real phone photos of printed ECGs
 - [ ] Prototype a mobile app
@@ -164,11 +164,37 @@ Real use means phone photos of printed ECGs, not clean digital renders. To check
 
 **Finding:** under any distortion, the model labels many normal ECGs as AF, and under blur it labels every ECG as AF. The high sensitivity is not a strength here; it comes from predicting AF for almost everything. Because every normal ECG in training was perfectly clean, the model appears to have learned "not perfectly clean" as a shortcut for AF. This is a **distribution shift** problem, and it means the current model would not work on phone photos.
 
-**Next step:** retrain with random photo-like augmentations applied to the training images only (rotation, perspective, blur and lighting, each applied with 50% probability), then repeat this table. Validation and test images stay unaugmented for the main scores.
+### Fix: retraining with data augmentation
+
+A fresh pretrained ResNet-18 was trained with the same settings as the first model (loss, class weight, optimiser, learning rate, clean validation, best-epoch saving), with one change: every training image was randomly altered each time it was used. Each alteration was applied with 50% probability:
+
+- rotation up to ±8°
+- perspective (distortion scale 0.3)
+- Gaussian blur (σ between 0.1 and 3.0)
+- brightness and contrast (±50%)
+
+Validation and test images were not augmented. Training ran for 8 epochs (about 7 minutes each on a Colab T4, as augmentation runs on the CPU); validation F1 peaked at **epoch 2 (0.967)**, which was kept. Later epochs lowered the training loss without improving validation F1.
+
+**Threshold:** chosen again on the validation set, scoring every threshold on the clean and the four distorted versions. **0.45** was chosen: on clean validation images it matches the first model (3 missed AF, 6 false alarms, F1 0.970), its average F1 across the five versions (0.949) is within 0.008 of the best (0.70), and it misses fewer AF cases than higher thresholds, which matters for screening.
+
+### Final comparison on the test set (fold 10, evaluated once)
+
+| Distortion | First model F1 (threshold 0.30) | **Augmented model F1 (threshold 0.45)** | Augmented: missed AF (of 152) | Augmented: false alarms (of 815) |
+|---|---|---|---|---|
+| None (clean) | 0.967 | 0.954 | 6 | 8 |
+| Rotation | 0.505 | **0.961** | 6 | 6 |
+| Perspective | 0.292 | **0.945** | 15 | 1 |
+| Blur | 0.272 | **0.916** | 4 | 23 |
+| Brightness/contrast | 0.518 | **0.930** | 5 | 17 |
+
+**Result:** augmentation raised test F1 on distorted images from 0.27–0.52 to 0.92–0.96. Under blur, the first model called all 815 normal test ECGs AF; the augmented model calls 23. The cost is small on clean images (F1 0.967 → 0.954, false alarms 4 → 8).
+
+**Remaining weaknesses:** perspective distortion hides some AF (15 of 152 missed, sensitivity 0.901), and blur and lighting changes still cause 17–23 false alarms.
 
 ## Limitations
 
-- The model was trained and tested on clean, computer-rendered ECGs. On photo-like distortions its specificity collapses (see Robustness above), so the reported test scores apply to clean digital images only.
+- All images, including the distorted ones, are simulated from digital ECG signals. Performance on real phone photos of printed ECGs (shadows, creases, handwriting, different printers) is untested.
+- The augmented model still misses more AF on photos taken at an angle (perspective: sensitivity 0.901).
 - Labels come from PTB-XL as published. A blind cardiologist review of the 7 validation disagreements found the label likely wrong in 6, so the reported scores are affected by label noise (in either direction).
 - Only two classes (Normal vs. AF); other arrhythmias were excluded from the data.
 - Not validated clinically; see the disclaimer below.
