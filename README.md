@@ -2,7 +2,7 @@
 
 Detecting **atrial fibrillation (AF)** from images of paper ECGs using computer vision.
 
-> **Status:** a learning and portfolio project. The current model, retrained with photo-like data augmentation, reaches test F1 0.954 on clean ECG images and 0.92–0.96 on blurred, tilted, angled and re-lit versions (the first model scored 0.27–0.52 on those). Testing on real phone photos of printed ECGs is next.
+> **Status:** a learning and portfolio project. The current model, retrained with photo-like data augmentation, reaches test F1 0.954 on clean ECG images and 0.92–0.96 on blurred, tilted, angled and re-lit versions (the first model scored 0.27–0.52 on those). A first real-camera test on 36 phone photos (of ECGs shown on a laptop screen) gave F1 0.94–0.97 for both models; testing on photos of printed ECGs under harder conditions is next.
 
 ---
 
@@ -59,6 +59,7 @@ Folds 9 and 10 contain only human-validated ECGs, giving the most reliable evalu
 |---|---|---|
 | `ECG_Vision_01_Explore_PTBXL.ipynb` | Download PTB-XL, explore metadata, build NORM vs. AFIB labels and splits, plot raw waveforms with `wfdb`, and render all 9,718 ECGs as standard 12-lead printout images | ✅ Done |
 | `ECG_Vision_02_Train_Model.ipynb` | Fine-tune ResNet-18 on the ECG images, analyse validation errors, choose the decision threshold, and evaluate once on the test set | ✅ Done |
+| `ECG_Vision_04_Phone_Photos.ipynb` | Select 40 test ECGs, photograph them with an iPhone, match photos to ECGs and score both models | ✅ Done |
 | `ECG_Vision_03_Robustness.ipynb` | Test the trained model on photo-like distortions, retrain with data augmentation, choose a new threshold and evaluate once on the test set | ✅ Done |
 
 Built and run in **Google Colab**, with data stored in Google Drive.
@@ -79,7 +80,8 @@ Built and run in **Google Colab**, with data stored in Google Drive.
 - [x] Robustness test on photo-like distortions (model failed: many false alarms)
 - [x] Retrain with photo-like data augmentation and repeat the robustness test (test F1 on distorted images: 0.27–0.52 → 0.92–0.96)
 - [x] Blind cardiologist review of the validation disagreements (agreed with the model in 6 of 7)
-- [ ] Test on real phone photos of printed ECGs
+- [x] First real-camera test: 36 iPhone photos of ECGs on a laptop screen (F1 0.94–0.97)
+- [ ] Test on phone photos of printed ECGs under harder conditions (dim light, angles, shadows)
 - [ ] Prototype a mobile app
 
 ## ECG images
@@ -191,9 +193,24 @@ Validation and test images were not augmented. Training ran for 8 epochs (about 
 
 **Remaining weaknesses:** perspective distortion hides some AF (15 of 152 missed, sensitivity 0.901), and blur and lighting changes still cause 17–23 false alarms.
 
+## First real-camera test: phone photos of a screen
+
+**Setup.** 40 ECGs were drawn at random from the test set (20 AF, 20 normal, fixed seed), shown full-screen on a laptop and photographed with an iPhone in ordinary room light, holding the phone naturally. Each photo was cropped to the ECG only (no straightening, filters or editing). No printer was available, so these are photos of a **screen**, not of paper.
+
+**Matching photos to ECGs.** The cropping removed the code printed on each page, and some photos were retakes. Photos were matched back to their ECGs automatically by comparing the trace pattern (dark pixels only) of each photo with the 40 originals, using the order in which the photos were taken. Retakes were dropped (the better-matching photo kept), two photos did not sync to Colab, and two pairs that looked mismatched on visual inspection were excluded. **36 photos were scored (17 AF, 19 normal).** Each model used the threshold chosen earlier on validation.
+
+| Model | Missed AF (of 17) | False alarms (of 19) | Sensitivity | Specificity | F1 |
+|---|---|---|---|---|---|
+| First model (clean training, threshold 0.30) | 0 | 1 | 1.000 | 0.947 | 0.971 |
+| Augmented model (threshold 0.45) | 2 | 0 | 0.882 | 1.000 | 0.938 |
+
+**Interpretation.** Both models worked well on these photos, unlike the first model's collapse under simulated distortions. The photos were cropped, sharp, fairly straight and well lit, so they were milder than the simulated blur, perspective and lighting changes; this test did not include the conditions where augmentation helps most. The augmented model gave very confident predictions on normal photos (probability ≤ 0.01 for all 19) but missed two AF photos that the first model caught with moderate confidence. With 36 photos, the two models differ by 3 photos in total, which is too few to say either is better.
+
+**Limitations of this test:** photos of a screen rather than paper (no paper texture, creases or printer colours; screens can add moiré patterns); a small sample; one phone and one photographer; and matching done by image similarity rather than a visible code.
+
 ## Limitations
 
-- All images, including the distorted ones, are simulated from digital ECG signals. Performance on real phone photos of printed ECGs (shadows, creases, handwriting, different printers) is untested.
+- Apart from the 36 screen photos, all images are simulated from digital ECG signals. Performance on phone photos of **printed** ECGs (shadows, creases, handwriting, different printers) is untested.
 - The augmented model still misses more AF on photos taken at an angle (perspective: sensitivity 0.901).
 - Labels come from PTB-XL as published. A blind cardiologist review of the 7 validation disagreements found the label likely wrong in 6, so the reported scores are affected by label noise (in either direction).
 - Only two classes (Normal vs. AF); other arrhythmias were excluded from the data.
