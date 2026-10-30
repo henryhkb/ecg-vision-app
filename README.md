@@ -134,7 +134,7 @@ The model made 7 validation errors: 5 missed AF and 2 false alarms. Reviewing th
 
 ### Blind review by a cardiologist
 
-The 7 ECGs were sent to a cardiologist as images labelled only A to G, without the PTB-XL label or the model's prediction, so the reading would not be influenced.
+The 7 ECGs were sent to a cardiologist, Dr. Stephen Okyere Mensah, as images labelled only A to G, without the PTB-XL label or the model's prediction, so the reading would not be influenced.
 
 | ECG | Cardiologist | PTB-XL label | Model (threshold 0.5) | Agrees with cardiologist |
 |---|---|---|---|---|
@@ -185,6 +185,10 @@ Real use means phone photos of printed ECGs, not clean digital renders. To check
 
 - [George B. Moody PhysioNet Challenge 2024](https://moody-challenge.physionet.org/2024/): digitisation and classification of ECG images
 - [PMcardio](https://www.powerfulmedical.com/): a commercial, certified smartphone app for AI ECG interpretation
+
+## Acknowledgements
+
+Thanks to **Dr. Stephen Okyere Mensah** for the blind review of the misclassified ECGs.
 
 ## Disclaimer
 
