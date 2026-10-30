@@ -59,8 +59,8 @@ Folds 9 and 10 contain only human-validated ECGs, giving the most reliable evalu
 |---|---|---|
 | `ECG_Vision_01_Explore_PTBXL.ipynb` | Download PTB-XL, explore metadata, build NORM vs. AFIB labels and splits, plot raw waveforms with `wfdb`, and render all 9,718 ECGs as standard 12-lead printout images | ✅ Done |
 | `ECG_Vision_02_Train_Model.ipynb` | Fine-tune ResNet-18 on the ECG images, analyse validation errors, choose the decision threshold, and evaluate once on the test set | ✅ Done |
-| `ECG_Vision_04_Phone_Photos.ipynb` | Select 40 test ECGs, photograph them with an iPhone, match photos to ECGs and score both models | ✅ Done |
 | `ECG_Vision_03_Robustness.ipynb` | Test the trained model on photo-like distortions, retrain with data augmentation, choose a new threshold and evaluate once on the test set | ✅ Done |
+| `ECG_Vision_04_Phone_Photos.ipynb` | Select 40 test ECGs, photograph them with an iPhone, match photos to ECGs and score both models | ✅ Done |
 
 Built and run in **Google Colab**, with data stored in Google Drive.
 
