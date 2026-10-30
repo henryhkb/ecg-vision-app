@@ -57,6 +57,9 @@ with gr.Blocks(title="ECG-Vision") as demo:
         with gr.Column():
             image_in = gr.Image(type="pil", label="ECG image")
             button = gr.Button("Analyse ECG", variant="primary")
+            # Two example iPhone photos of PTB-XL test ECGs (one AF, one normal), so visitors can try it without their own ECG
+            gr.Examples(examples=[["IMG_7402.JPG"], ["IMG_7399.JPG"]],
+                        inputs=image_in, label="No ECG to hand? Click an example, then press Analyse ECG")
         with gr.Column():
             probs_out = gr.Label(num_top_classes=2, label="Model output")
             text_out = gr.Markdown()
