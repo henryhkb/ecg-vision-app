@@ -2,6 +2,8 @@
 
 Detecting **atrial fibrillation (AF)** from images of paper ECGs using computer vision.
 
+**▶ Try the live demo:** [huggingface.co/spaces/Henryhkb/ecg-vision](https://huggingface.co/spaces/Henryhkb/ecg-vision) (research demo only, not a medical device)
+
 > **Status:** a learning and portfolio project. The current model, retrained with photo-like data augmentation, reaches test F1 0.954 on clean ECG images and 0.92–0.96 on blurred, tilted, angled and re-lit versions (the first model scored 0.27–0.52 on those). A first real-camera test on 36 phone photos (of ECGs shown on a laptop screen) gave F1 0.94–0.97 for both models; testing on photos of printed ECGs under harder conditions is next.
 
 ---
@@ -82,6 +84,7 @@ Built and run in **Google Colab**, with data stored in Google Drive.
 - [x] Blind cardiologist review of the validation disagreements (agreed with the model in 6 of 7)
 - [x] First real-camera test: 36 iPhone photos of ECGs on a laptop screen (F1 0.94–0.97)
 - [ ] Test on phone photos of printed ECGs under harder conditions (dim light, angles, shadows)
+- [x] Public web demo (Gradio on Hugging Face Spaces)
 - [ ] Prototype a mobile app
 
 ## ECG images
@@ -215,6 +218,10 @@ Validation and test images were not augmented. Training ran for 8 epochs (about 
 - Labels come from PTB-XL as published. A blind cardiologist review of the 7 validation disagreements found the label likely wrong in 6, so the reported scores are affected by label noise (in either direction).
 - Only two classes (Normal vs. AF); other arrhythmias were excluded from the data.
 - Not validated clinically; see the disclaimer below.
+
+## Live demo
+
+A [Gradio](https://www.gradio.app/) web demo runs the augmented model (threshold 0.45) on [Hugging Face Spaces](https://huggingface.co/spaces/Henryhkb/ecg-vision): upload or photograph a 12-lead ECG and it returns the AF probability. Uploaded images are only used for the prediction and are not saved. The demo code is in [`demo/`](demo/) (`app.py`, `requirements.txt`); the trained weights are hosted in the Space.
 
 ## How to run
 
